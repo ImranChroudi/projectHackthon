@@ -11,7 +11,7 @@ import { verifyScanToken } from './qrService.js';
 
 // Enregistre la présence d'un stagiaire suite au scan du QR.
 // Le contrôle WiFi (CIDR) est déjà appliqué par le middleware wifiGuard en amont.
-export async function scan({ sessionId, token, stagiaire, scanIp, now = new Date() }) {
+export async function scan({ sessionId, token, stagiaire, scanIp, deviceId, now = new Date() }) {
   const session = await Session.findById(sessionId);
   if (!session) throw new ApiError(404, MSG.SESSION_INTROUVABLE);
 
@@ -49,10 +49,12 @@ export async function scan({ sessionId, token, stagiaire, scanIp, now = new Date
     throw err;
   }
 
-  // Anti-fraude : verrouille la déconnexion jusqu'à l'expiration du QR.
-  // L'étudiant ne peut donc pas se déconnecter pour se reconnecter sur le
-  // compte d'un ami tant que la fenêtre de scan est ouverte.
-  stagiaire.scanLockUntil = session.qrTokenExpiresAt;
+  // Anti-fraude : verrouille la déconnexion ET la connexion vers un autre compte
+  // pendant 15 minutes (à compter du scan) sur l'appareil utilisé. L'étudiant ne
+  // peut donc pas se déconnecter / se reconnecter sur le compte d'un ami pour
+  // scanner à sa place tant que la fenêtre est ouverte.
+  stagiaire.scanLockUntil = new Date(now.getTime() + env.scanWindowMinutes * 60 * 1000);
+  stagiaire.scanLockDevice = deviceId || null;
   await stagiaire.save();
 
   return { attendance, status };

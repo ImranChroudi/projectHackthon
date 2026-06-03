@@ -8,6 +8,8 @@ export const MSG = {
   COMPTE_DESACTIVE: 'Ce compte est désactivé.',
   DECONNEXION_VERROUILLEE:
     'Déconnexion impossible pendant la fenêtre de présence active (anti-fraude). Réessayez plus tard.',
+  CONNEXION_VERROUILLEE:
+    'Connexion impossible : un scan de présence est actif sur cet appareil (anti-fraude). Réessayez dans quelques minutes.',
   DECONNEXION_OK: 'Déconnexion réussie.',
 
   // Ressources

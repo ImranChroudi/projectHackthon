@@ -29,3 +29,30 @@ export const uploadJustificatifs = multer({
   fileFilter,
   limits: { fileSize: env.maxUploadMb * 1024 * 1024 },
 }).array('documents', 5);
+
+// Types acceptés pour les pièces jointes d'annonce (plus large : bureautique inclus).
+const ACCEPTES_ANNONCE = [
+  'application/pdf',
+  'image/png',
+  'image/jpeg',
+  'image/jpg',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'text/plain',
+  'application/zip',
+];
+
+function fileFilterAnnonce(_req, file, cb) {
+  if (ACCEPTES_ANNONCE.includes(file.mimetype)) cb(null, true);
+  else cb(new ApiError(400, 'Type de fichier non autorisé (PDF, image, document bureautique ou ZIP attendus).'));
+}
+
+export const uploadPiecesJointes = multer({
+  storage,
+  fileFilter: fileFilterAnnonce,
+  limits: { fileSize: env.maxUploadMb * 1024 * 1024 },
+}).array('fichiers', 5);
