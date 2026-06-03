@@ -16,7 +16,7 @@ router.post(
   '/login',
   asyncHandler(async (req, res) => {
     const { email, password } = loginSchema.parse(req.body);
-    const result = await login(email, password);
+    const result = await login(email, password, req.get('X-Device-Id'));
     res.json(result);
   })
 );
