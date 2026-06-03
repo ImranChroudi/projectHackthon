@@ -139,15 +139,22 @@ export async function stagiairesParAbsence(match = {}, limit = 20) {
   ]);
 }
 
-// 5) Tableau de bord formateur : restreint à ses groupes + modules assignés.
-export async function dashboardFormateur(formateur) {
+// Périmètre (filtre Mongo) d'un formateur : ses groupes + modules assignés,
+// avec repli sur les sessions dont il est le formateur. Réutilisé par le
+// tableau de bord et la liste détaillée des absences.
+export function perimetreFormateur(formateur) {
   const match = {};
   const or = [];
   if (formateur.modulesAssigned?.length) or.push({ module: { $in: formateur.modulesAssigned } });
   if (formateur.groupesAssigned?.length) or.push({ groupe: { $in: formateur.groupesAssigned } });
-  // À défaut d'affectations, on retombe sur les sessions dont il est le formateur.
   if (or.length) match.$or = or;
   else match.formateur = formateur._id;
+  return match;
+}
+
+// 5) Tableau de bord formateur : restreint à ses groupes + modules assignés.
+export async function dashboardFormateur(formateur) {
+  const match = perimetreFormateur(formateur);
 
   const [modules, creneaux, groupes, stagiaires] = await Promise.all([
     modulesParAbsence(match),
@@ -156,4 +163,18 @@ export async function dashboardFormateur(formateur) {
     stagiairesParAbsence(match),
   ]);
   return { perimetre: match, modules, creneaux, groupes, stagiaires };
+}
+
+// 6) Liste détaillée des absences dans le périmètre du formateur.
+//    Sert à la consultation, à la recherche et au comptage par stagiaire
+//    côté interface formateur.
+export async function absencesFormateur(formateur) {
+  const match = { ...perimetreFormateur(formateur), status: { $in: ABSENT_STATUSES } };
+  return Attendance.find(match)
+    .sort({ sessionStart: -1, createdAt: -1 })
+    .populate('stagiaire', 'nom prenom email')
+    .populate('module', 'nom code')
+    .populate('groupe', 'nom code')
+    .populate('justification', 'statut')
+    .lean();
 }

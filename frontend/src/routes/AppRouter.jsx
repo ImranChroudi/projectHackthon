@@ -17,6 +17,7 @@ import { FormateurDashboard } from '@/features/formateur/FormateurDashboard';
 import { SessionsPage } from '@/features/formateur/SessionsPage';
 import { SessionDetailPage } from '@/features/formateur/SessionDetailPage';
 import { FormateurSchedulePage } from '@/features/formateur/SchedulePage';
+import { AbsencesPage } from '@/features/formateur/AbsencesPage';
 
 // Admin
 import { AdminDashboard } from '@/features/admin/AdminDashboard';
@@ -72,6 +73,7 @@ export function AppRouter() {
         <Route path="emploi-du-temps" element={<FormateurSchedulePage />} />
         <Route path="sessions" element={<SessionsPage />} />
         <Route path="sessions/:id" element={<SessionDetailPage />} />
+        <Route path="absences" element={<AbsencesPage />} />
         <Route path="annonces" element={<AnnoncesPage />} />
       </Route>
 
