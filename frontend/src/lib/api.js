@@ -2,6 +2,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 
 const TOKEN_KEY = 'attendance_token';
+const DEVICE_KEY = 'attendance_device_id';
 
 export const tokenStore = {
   get: () => localStorage.getItem(TOKEN_KEY),
@@ -9,12 +10,27 @@ export const tokenStore = {
   clear: () => localStorage.removeItem(TOKEN_KEY),
 };
 
+// Identifiant stable de l'appareil (anti-fraude). Persisté hors du jeton pour
+// survivre à une déconnexion : le backend l'utilise pour empêcher de scanner
+// pour un ami en changeant de compte sur le même appareil.
+function getDeviceId() {
+  let id = localStorage.getItem(DEVICE_KEY);
+  if (!id) {
+    id =
+      crypto?.randomUUID?.() ||
+      `dev-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem(DEVICE_KEY, id);
+  }
+  return id;
+}
+
 export const api = axios.create({ baseURL: '/api' });
 
-// Joint le jeton JWT à chaque requête.
+// Joint le jeton JWT et l'identifiant d'appareil à chaque requête.
 api.interceptors.request.use((config) => {
   const token = tokenStore.get();
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  config.headers['X-Device-Id'] = getDeviceId();
   return config;
 });
 

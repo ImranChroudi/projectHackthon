@@ -27,6 +27,9 @@ const userSchema = new Schema(
 
     // Anti-fraude : empêche la déconnexion / reconnexion ailleurs jusqu'à cette date
     scanLockUntil: { type: Date, default: null },
+    // Appareil (deviceId) depuis lequel le scan verrouillant a été effectué.
+    // Sert à refuser une connexion vers un AUTRE compte sur le même appareil.
+    scanLockDevice: { type: String, default: null },
 
     active: { type: Boolean, default: true },
   },

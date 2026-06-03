@@ -116,6 +116,7 @@ router.post(
       token,
       stagiaire: req.user,
       scanIp: req.scanIp,
+      deviceId: req.get('X-Device-Id'),
     });
     res.json({ message: MSG.PRESENCE_ENREGISTREE, status: result.status });
   })
