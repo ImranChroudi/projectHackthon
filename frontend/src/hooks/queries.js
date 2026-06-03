@@ -13,10 +13,11 @@ export function useModules() {
 }
 
 // --- Affectations (groupe / module / formateur / heures) ---
-export function useAffectations() {
+export function useAffectations(params = {}) {
+  const { groupe, module, formateur } = params;
   return useQuery({
-    queryKey: ['affectations'],
-    queryFn: () => api.get('/affectations').then((r) => r.data),
+    queryKey: ['affectations', groupe || 'all', module || 'all', formateur || 'all'],
+    queryFn: () => api.get('/affectations', { params }).then((r) => r.data),
   });
 }
 

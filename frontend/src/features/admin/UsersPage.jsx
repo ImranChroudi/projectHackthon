@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { UserPlus, Loader2, Pencil, Power } from 'lucide-react';
+import { UserPlus, Loader2, Pencil, Power, Upload } from 'lucide-react';
 import { api, apiError } from '@/lib/api';
-import { useUsers, useGroupes } from '@/hooks/queries';
+import { useUsers, useGroupes, useModules } from '@/hooks/queries';
 import { PageHeader, TableSkeleton } from '@/components/PageHeader';
 import { EmptyState } from '@/components/EmptyState';
 import { Card, CardContent } from '@/components/ui/card';
@@ -33,13 +33,34 @@ const EMPTY = { nom: '', prenom: '', email: '', password: '', role: 'stagiaire',
 
 export function UsersPage() {
   const qc = useQueryClient();
+  const fileInputRef = useRef(null);
   const [roleFilter, setRoleFilter] = useState('stagiaire');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY);
+  const [importing, setImporting] = useState(false);
 
-  const { data: users = [], isLoading } = useUsers({ role: roleFilter });
+  const [search, setSearch] = useState('');
+  const [groupFilter, setGroupFilter] = useState('');
+  const [moduleFilter, setModuleFilter] = useState('');
+  const [activeFilter, setActiveFilter] = useState('all');
+
+  const findById = (list, id) => list.find((item) => item._id === id);
+  const labelsOf = (list, ids, fmt) =>
+    (ids || []).map((id) => {
+      const entry = findById(list, id);
+      return entry ? fmt(entry) : id;
+    }).filter(Boolean).join(', ');
+
+  const { data: users = [], isLoading } = useUsers({
+    role: roleFilter,
+    groupe: groupFilter === 'all' ? undefined : groupFilter || undefined,
+    module: roleFilter === 'formateur' ? (moduleFilter === 'all' ? undefined : moduleFilter || undefined) : undefined,
+    active: activeFilter === 'all' ? undefined : activeFilter === 'active',
+    search: search || undefined,
+  });
   const { data: groupes = [] } = useGroupes();
+  const { data: modules = [] } = useModules();
 
   const save = useMutation({
     mutationFn: (payload) => {
@@ -69,6 +90,16 @@ export function UsersPage() {
     onError: (err) => toast.error(apiError(err)),
   });
 
+  const importUsers = useMutation({
+    mutationFn: (payload) => api.post(`/users/import?role=${roleFilter}`, payload).then((r) => r.data),
+    onSuccess: (data) => {
+      toast.success(`${data.length} ${roleFilter === 'formateur' ? 'formateur(s)' : 'stagiaire(s)'} importé(s).`);
+      qc.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (err) => toast.error(apiError(err, 'Import CSV impossible.')),
+    onSettled: () => setImporting(false),
+  });
+
   const openCreate = () => {
     setEditing(null);
     setForm({ ...EMPTY, role: roleFilter });
@@ -80,21 +111,104 @@ export function UsersPage() {
     setDialogOpen(true);
   };
 
+  const handleCsvFile = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    event.target.value = '';
+
+    const formData = new FormData();
+    formData.append('file', file);
+    importUsers.mutate(formData);
+  };
+
   return (
     <div>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".csv"
+        className="hidden"
+        onChange={handleCsvFile}
+      />
       <PageHeader title="Utilisateurs" description="Gérez les comptes administrateurs, formateurs et stagiaires.">
-        <Button onClick={openCreate}>
-          <UserPlus className="h-4 w-4" /> Nouvel utilisateur
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={openCreate}>
+            <UserPlus className="h-4 w-4" /> Nouvel utilisateur
+          </Button>
+          {roleFilter !== 'admin' && (
+            <Button
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={importing || importUsers.isPending}
+            >
+              <Upload className="h-4 w-4" /> Importer CSV
+            </Button>
+          )}
+        </div>
       </PageHeader>
 
-      <Tabs value={roleFilter} onValueChange={setRoleFilter} className="mb-4">
+      <Tabs value={roleFilter} onValueChange={(value) => {
+        setRoleFilter(value);
+        setGroupFilter('');
+        setModuleFilter('');
+        setSearch('');
+        setActiveFilter('all');
+      }} className="mb-4">
         <TabsList>
           <TabsTrigger value="stagiaire">Stagiaires</TabsTrigger>
           <TabsTrigger value="formateur">Formateurs</TabsTrigger>
           <TabsTrigger value="admin">Administrateurs</TabsTrigger>
         </TabsList>
       </Tabs>
+
+      <div className="grid gap-3 lg:grid-cols-4 mb-4">
+        <div className="space-y-1.5">
+          <Label>Recherche</Label>
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Nom, prénom ou email"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Groupe</Label>
+          <Select value={groupFilter} onValueChange={setGroupFilter}>
+            <SelectTrigger><SelectValue placeholder="Tous" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous</SelectItem>
+              {groupes.map((g) => (
+                <SelectItem key={g._id} value={g._id}>{g.nom}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {roleFilter === 'formateur' && (
+          <div className="space-y-1.5">
+            <Label>Module</Label>
+            <Select value={moduleFilter} onValueChange={setModuleFilter}>
+              <SelectTrigger><SelectValue placeholder="Tous" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous</SelectItem>
+                {modules.map((m) => (
+                  <SelectItem key={m._id} value={m._id}>{m.nom}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        <div className="space-y-1.5">
+          <Label>État</Label>
+          <Select value={activeFilter} onValueChange={setActiveFilter}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous</SelectItem>
+              <SelectItem value="active">Actifs</SelectItem>
+              <SelectItem value="inactive">Inactifs</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
       <Card>
         <CardContent className="p-0">
@@ -109,6 +223,9 @@ export function UsersPage() {
                   <TableHead>Nom</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Rôle</TableHead>
+                  {roleFilter === 'formateur' && <TableHead>Modules</TableHead>}
+                  {roleFilter === 'formateur' && <TableHead>Groupes</TableHead>}
+                  {roleFilter === 'stagiaire' && <TableHead>Groupe</TableHead>}
                   <TableHead>État</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -119,6 +236,21 @@ export function UsersPage() {
                     <TableCell className="font-medium">{u.prenom} {u.nom}</TableCell>
                     <TableCell className="text-muted-foreground">{u.email}</TableCell>
                     <TableCell><Badge variant="secondary">{ROLE_LABELS[u.role]}</Badge></TableCell>
+                    {roleFilter === 'formateur' && (
+                      <TableCell className="text-muted-foreground">
+                        {labelsOf(modules, u.modulesAssigned, (m) => m.nom) || '—'}
+                      </TableCell>
+                    )}
+                    {roleFilter === 'formateur' && (
+                      <TableCell className="text-muted-foreground">
+                        {labelsOf(groupes, u.groupesAssigned, (g) => g.nom) || '—'}
+                      </TableCell>
+                    )}
+                    {roleFilter === 'stagiaire' && (
+                      <TableCell className="text-muted-foreground">
+                        {findById(groupes, u.groupe)?.nom || '—'}
+                      </TableCell>
+                    )}
                     <TableCell>
                       {u.active ? <Badge variant="success">Actif</Badge> : <Badge variant="muted">Inactif</Badge>}
                     </TableCell>

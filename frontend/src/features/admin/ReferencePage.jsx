@@ -142,7 +142,14 @@ function SallesTab() {
 }
 
 function AffectationsTab() {
-  const { data: affectations = [], isLoading } = useAffectations();
+  const [filterGroupe, setFilterGroupe] = useState('all');
+  const [filterModule, setFilterModule] = useState('all');
+  const [filterFormateur, setFilterFormateur] = useState('all');
+  const { data: affectations = [], isLoading } = useAffectations({
+    groupe: filterGroupe !== 'all' ? filterGroupe : undefined,
+    module: filterModule !== 'all' ? filterModule : undefined,
+    formateur: filterFormateur !== 'all' ? filterFormateur : undefined,
+  });
   const { data: groupes = [] } = useGroupes();
   const { data: modules = [] } = useModules();
   const { data: formateurs = [] } = useUsers({ role: 'formateur' });
@@ -153,6 +160,12 @@ function AffectationsTab() {
   const [heures, setHeures] = useState('5');
 
   const reset = () => { setGroupe(''); setModule(''); setFormateur(''); setHeures('5'); };
+
+  const resetFilters = () => {
+    setFilterGroupe('all');
+    setFilterModule('all');
+    setFilterFormateur('all');
+  };
 
   // Charge hebdomadaire placée par formateur (somme des heures affectées).
   const chargeParFormateur = affectations.reduce((acc, a) => {
@@ -167,6 +180,50 @@ function AffectationsTab() {
         Définissez ce qui doit être planifié : un module enseigné à un groupe par un formateur,
         à raison de X heures/semaine. La génération automatique de l'emploi du temps s'appuie dessus.
       </p>
+      <div className="grid gap-3 md:grid-cols-4 lg:grid-cols-5 mb-4">
+        <div className="space-y-1.5">
+          <Label>Filtrer groupe</Label>
+          <Select value={filterGroupe} onValueChange={setFilterGroupe}>
+            <SelectTrigger className="w-full"><SelectValue placeholder="Tous" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous</SelectItem>
+              {groupes.map((g) => (
+                <SelectItem key={g._id} value={g._id}>{g.nom}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Filtrer module</Label>
+          <Select value={filterModule} onValueChange={setFilterModule}>
+            <SelectTrigger className="w-full"><SelectValue placeholder="Tous" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous</SelectItem>
+              {modules.map((m) => (
+                <SelectItem key={m._id} value={m._id}>{m.nom}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Filtrer formateur</Label>
+          <Select value={filterFormateur} onValueChange={setFilterFormateur}>
+            <SelectTrigger className="w-full"><SelectValue placeholder="Tous" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous</SelectItem>
+              {formateurs.map((f) => (
+                <SelectItem key={f._id} value={f._id}>{f.prenom} {f.nom}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-end gap-2">
+          <Button type="button" variant="outline" onClick={resetFilters} className="h-10">
+            Réinitialiser
+          </Button>
+        </div>
+      </div>
+
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -238,15 +295,28 @@ function AffectationsTab() {
 function ModulesTab() {
   const { data: modules = [], isLoading } = useModules();
   const { data: formateurs = [] } = useUsers({ role: 'formateur' });
+  const { data: salles = [] } = useSalles();
   const { create, remove } = useCrud('modules', 'modules');
   const [nom, setNom] = useState('');
   const [code, setCode] = useState('');
   const [formateur, setFormateur] = useState('');
+  const [selectedSalles, setSelectedSalles] = useState([]);
+  const [salleDropdownOpen, setSalleDropdownOpen] = useState(false);
+
+  const selectedSalleLabels = salles
+    .filter((s) => selectedSalles.includes(s._id))
+    .map((s) => `${s.nom} (${s.code})`);
 
   return (
     <div className="space-y-4">
       <form
-        onSubmit={(e) => { e.preventDefault(); create.mutate({ nom, code, formateur: formateur || undefined }, { onSuccess: () => { setNom(''); setCode(''); setFormateur(''); } }); }}
+        onSubmit={(e) => {
+          e.preventDefault();
+          create.mutate(
+            { nom, code, formateur: formateur || undefined, salles: selectedSalles.length ? selectedSalles : undefined },
+            { onSuccess: () => { setNom(''); setCode(''); setFormateur(''); setSelectedSalles([]); setSalleDropdownOpen(false); } }
+          );
+        }}
         className="flex flex-wrap items-end gap-3"
       >
         <div className="space-y-1.5"><Label>Nom</Label><Input value={nom} onChange={(e) => setNom(e.target.value)} required /></div>
@@ -262,6 +332,44 @@ function ModulesTab() {
             </SelectContent>
           </Select>
         </div>
+        <div
+          className="space-y-1.5 w-52 relative"
+          tabIndex={-1}
+          onBlur={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget)) setSalleDropdownOpen(false);
+          }}
+        >
+          <Label>Salles autorisées</Label>
+          <button
+            type="button"
+            className="flex h-10 w-full items-center justify-between rounded-lg border border-input bg-card px-3 text-sm text-left shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
+            onClick={() => setSalleDropdownOpen((open) => !open)}
+          >
+            <span className={selectedSalleLabels.length ? 'text-foreground' : 'text-muted-foreground'}>
+              {selectedSalleLabels.length ? selectedSalleLabels.join(', ') : 'Sélectionnez des salles...'}
+            </span>
+            <span className="text-muted-foreground">▾</span>
+          </button>
+          {salleDropdownOpen && (
+            <div className="absolute left-0 top-full z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-border bg-card p-2 shadow-lg">
+              {salles.map((s) => (
+                <label key={s._id} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 hover:bg-muted">
+                  <input
+                    type="checkbox"
+                    checked={selectedSalles.includes(s._id)}
+                    onChange={() => {
+                      setSelectedSalles((prev) =>
+                        prev.includes(s._id) ? prev.filter((id) => id !== s._id) : [...prev, s._id]
+                      );
+                    }}
+                    className="h-4 w-4 rounded border border-input text-primary focus:ring-primary"
+                  />
+                  <span>{s.nom} ({s.code})</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
         <Button type="submit" disabled={create.isPending}>
           {create.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Ajouter
         </Button>
@@ -271,13 +379,14 @@ function ModulesTab() {
           <div className="p-6"><EmptyState title="Aucun module" /></div>
         ) : (
           <Table>
-            <TableHeader><TableRow><TableHead>Nom</TableHead><TableHead>Code</TableHead><TableHead>Formateur</TableHead><TableHead></TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Nom</TableHead><TableHead>Code</TableHead><TableHead>Formateur</TableHead><TableHead>Salles</TableHead><TableHead></TableHead></TableRow></TableHeader>
             <TableBody>
               {modules.map((m) => (
                 <TableRow key={m._id}>
                   <TableCell className="font-medium">{m.nom}</TableCell>
                   <TableCell className="text-muted-foreground">{m.code}</TableCell>
                   <TableCell className="text-muted-foreground">{m.formateur ? `${m.formateur.prenom} ${m.formateur.nom}` : '—'}</TableCell>
+                  <TableCell className="text-muted-foreground">{m.salles?.length ? m.salles.map((s) => s.code || s.nom).join(', ') : '—'}</TableCell>
                   <TableCell className="text-right">
                     <Button size="icon" variant="ghost" className="text-destructive" onClick={() => remove.mutate(m._id)}><Trash2 className="h-4 w-4" /></Button>
                   </TableCell>

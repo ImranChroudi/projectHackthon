@@ -7,7 +7,7 @@ import { ROLES } from '../config/constants.js';
 export async function createUser(data) {
   const { password, ...rest } = data;
   const user = new User(rest);
-  await user.setPassword(password);
+  await user.setPassword(password || 'Formateur123!');
   await user.save();
 
   // Maintien de la cohérence groupe <-> stagiaire.
@@ -18,9 +18,37 @@ export async function createUser(data) {
 }
 
 export async function listUsers(filter = {}) {
-  const query = {};
-  if (filter.role) query.role = filter.role;
-  if (filter.groupe) query.groupe = filter.groupe;
+  const conditions = [];
+
+  if (filter.role) {
+    conditions.push({ role: filter.role });
+  }
+
+  if (filter.groupe) {
+    if (filter.role === ROLES.STAGIAIRE) {
+      conditions.push({ groupe: filter.groupe });
+    } else if (filter.role === ROLES.FORMATEUR) {
+      conditions.push({ groupesAssigned: filter.groupe });
+    } else {
+      conditions.push({ $or: [{ groupe: filter.groupe }, { groupesAssigned: filter.groupe }] });
+    }
+  }
+
+  if (filter.module && filter.role === ROLES.FORMATEUR) {
+    conditions.push({ modulesAssigned: filter.module });
+  }
+
+  if (filter.active !== undefined) {
+    if (filter.active === 'true' || filter.active === true) conditions.push({ active: true });
+    else if (filter.active === 'false' || filter.active === false) conditions.push({ active: false });
+  }
+
+  if (filter.search) {
+    const regex = new RegExp(filter.search, 'i');
+    conditions.push({ $or: [{ nom: regex }, { prenom: regex }, { email: regex }] });
+  }
+
+  const query = conditions.length ? { $and: conditions } : {};
   const users = await User.find(query).sort({ nom: 1, prenom: 1 });
   return users.map((u) => u.toSafeJSON());
 }

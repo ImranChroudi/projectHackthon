@@ -82,6 +82,16 @@ export const salleRouter = crudRouter(
 
 export const moduleRouter = crudRouter(
   Module,
-  z.object({ nom: z.string().min(1), code: z.string().min(1), formateur: z.string().optional().nullable() }),
-  { populate: { path: 'formateur', select: 'nom prenom email' } }
+  z.object({
+    nom: z.string().min(1),
+    code: z.string().min(1),
+    formateur: z.string().optional().nullable(),
+    salles: z.array(z.string()).optional(),
+  }),
+  {
+    populate: [
+      { path: 'formateur', select: 'nom prenom email' },
+      { path: 'salles', select: 'nom code capacite' },
+    ],
+  }
 );

@@ -451,6 +451,11 @@ function ManualTab() {
     return x ? fmt(x) : '—';
   };
 
+  const selectedModule = modules.find((m) => m._id === draft.module);
+  const filteredSalles = selectedModule?.salles?.length
+    ? salles.filter((s) => selectedModule.salles.map((id) => String(id)).includes(String(s._id)))
+    : salles;
+
   const addRow = () => {
     if (!draft.formateur || !draft.groupe || !draft.salle || !draft.module) {
       toast.error('Sélectionnez formateur, groupe, salle et module.');
@@ -505,7 +510,14 @@ function ManualTab() {
             <Field label="Début"><Input type="time" value={draft.heureDebut} onChange={(e) => setDraft({ ...draft, heureDebut: e.target.value })} /></Field>
             <Field label="Fin"><Input type="time" value={draft.heureFin} onChange={(e) => setDraft({ ...draft, heureFin: e.target.value })} /></Field>
             <Field label="Module">
-              <Select value={draft.module} onValueChange={(v) => setDraft({ ...draft, module: v })}>
+              <Select
+                value={draft.module}
+                onValueChange={(v) => {
+                  const nextModule = modules.find((m) => m._id === v);
+                  const nextSalleIds = nextModule?.salles?.map((s) => s._id) || [];
+                  setDraft({ ...draft, module: v, salle: nextSalleIds.includes(draft.salle) ? draft.salle : '' });
+                }}
+              >
                 <SelectTrigger><SelectValue placeholder="Module" /></SelectTrigger>
                 <SelectContent>{modules.map((m) => <SelectItem key={m._id} value={m._id}>{m.nom}</SelectItem>)}</SelectContent>
               </Select>
@@ -525,7 +537,13 @@ function ManualTab() {
             <Field label="Salle">
               <Select value={draft.salle} onValueChange={(v) => setDraft({ ...draft, salle: v })}>
                 <SelectTrigger><SelectValue placeholder="Salle" /></SelectTrigger>
-                <SelectContent>{salles.map((s) => <SelectItem key={s._id} value={s._id}>{s.nom}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  {filteredSalles.length > 0 ? (
+                    filteredSalles.map((s) => <SelectItem key={s._id} value={s._id}>{s.nom}</SelectItem>)
+                  ) : (
+                    <SelectItem value="none" disabled>Aucune salle disponible</SelectItem>
+                  )}
+                </SelectContent>
               </Select>
             </Field>
             <div className="flex items-end">

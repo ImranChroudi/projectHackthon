@@ -25,8 +25,19 @@ const affectationSchema = z.object({
 // Liste (tous les rôles authentifiés).
 router.get(
   '/',
-  asyncHandler(async (_req, res) => {
-    res.json(await Affectation.find().populate(POPULATE).sort({ createdAt: -1 }));
+  asyncHandler(async (req, res) => {
+    const querySchema = z.object({
+      groupe: z.string().min(1).optional(),
+      module: z.string().min(1).optional(),
+      formateur: z.string().min(1).optional(),
+    });
+    const { groupe, module, formateur } = querySchema.parse(req.query);
+    const filter = {};
+    if (groupe && groupe !== 'all') filter.groupe = groupe;
+    if (module && module !== 'all') filter.module = module;
+    if (formateur && formateur !== 'all') filter.formateur = formateur;
+
+    res.json(await Affectation.find(filter).populate(POPULATE).sort({ createdAt: -1 }));
   })
 );
 

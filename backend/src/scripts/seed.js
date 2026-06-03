@@ -91,14 +91,14 @@ async function run() {
 
   // --- Modules ---
   const modulesData = [
-    { nom: 'JavaScript', code: 'JS-101', formateur: fBenali._id },
-    { nom: 'React', code: 'REACT-201', formateur: fBenali._id },
-    { nom: 'Node.js & API', code: 'NODE-202', formateur: fAlaoui._id },
-    { nom: 'Bases de données', code: 'BDD-110', formateur: fAlaoui._id },
-    { nom: 'Réseaux TCP/IP', code: 'NET-101', formateur: fIdrissi._id },
-    { nom: 'Administration Linux', code: 'LINUX-120', formateur: fIdrissi._id },
-    { nom: 'Python & Data', code: 'PY-101', formateur: fTazi._id },
-    { nom: 'Machine Learning', code: 'ML-201', formateur: fHaddad._id },
+    { nom: 'JavaScript', code: 'JS-101', formateur: fBenali._id, salles: [salles[0]._id, salles[1]._id] },
+    { nom: 'React', code: 'REACT-201', formateur: fBenali._id, salles: [salles[0]._id, salles[1]._id] },
+    { nom: 'Node.js & API', code: 'NODE-202', formateur: fAlaoui._id, salles: [salles[1]._id, salles[2]._id] },
+    { nom: 'Bases de données', code: 'BDD-110', formateur: fAlaoui._id, salles: [salles[1]._id, salles[2]._id] },
+    { nom: 'Réseaux TCP/IP', code: 'NET-101', formateur: fIdrissi._id, salles: [salles[2]._id, salles[3]._id] },
+    { nom: 'Administration Linux', code: 'LINUX-120', formateur: fIdrissi._id, salles: [salles[2]._id, salles[3]._id] },
+    { nom: 'Python & Data', code: 'PY-101', formateur: fTazi._id, salles: [salles[0]._id, salles[3]._id] },
+    { nom: 'Machine Learning', code: 'ML-201', formateur: fHaddad._id, salles: [salles[1]._id, salles[3]._id] },
   ];
   const modules = await Module.create(modulesData);
   const byCode = Object.fromEntries(modules.map((m) => [m.code, m]));

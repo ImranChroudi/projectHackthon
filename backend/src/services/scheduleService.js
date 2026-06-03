@@ -119,7 +119,7 @@ export async function autoGenererEmploiDuTemps(semaineDebutInput) {
 
   const affectations = await Affectation.find()
     .populate({ path: 'groupe', select: 'nom code stagiaires' })
-    .populate('module', 'nom code')
+    .populate('module', 'nom code salles')
     .populate('formateur', 'nom prenom heuresHebdo');
   if (!affectations.length) throw new ApiError(400, MSG.AUCUNE_AFFECTATION);
 
@@ -179,7 +179,13 @@ export async function autoGenererEmploiDuTemps(semaineDebutInput) {
         if ((heuresFormateur.get(fId) || 0) + BLOC_HEURES > plafond + 1e-6) continue;
         if (respectSoft && (groupeModuleJour.get(`${gId}-${mId}-${slot.jourIdx}`) || 0) >= 1) continue;
         const occupied = busySalle.get(k) || EMPTY;
-        let salle = salles.find((s) => !occupied.has(String(s._id)) && s.capacite >= taille);
+        const moduleAllowedSalles = (u.module.salles || []).map((id) => String(id));
+        const allowedSalles = moduleAllowedSalles.length
+          ? salles.filter((s) => moduleAllowedSalles.includes(String(s._id)))
+          : salles;
+        let salle = allowedSalles.find((s) => !occupied.has(String(s._id)) && s.capacite >= taille);
+        if (!salle && allowedSalles !== salles) salle = salles.find((s) => !occupied.has(String(s._id)) && s.capacite >= taille);
+        if (!salle) salle = allowedSalles.find((s) => !occupied.has(String(s._id)));
         if (!salle) salle = salles.find((s) => !occupied.has(String(s._id)));
         if (!salle) continue;
         return { slot, salle };
