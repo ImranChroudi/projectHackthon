@@ -115,15 +115,31 @@ function AutoTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewBy, view.list]);
 
-  // Nombre de sessions par entité (badge informatif dans le sélecteur).
-  const countByEntity = useMemo(() => {
+  // Badge informatif dans le sélecteur :
+  //  - axe formateur : total d'heures travaillées la semaine (somme des durées réelles) ;
+  //  - autres axes  : nombre de sessions.
+  const metricByEntity = useMemo(() => {
     const m = {};
     for (const s of sessions) {
       const id = view.ofSession(s);
-      if (id) m[id] = (m[id] || 0) + 1;
+      if (!id) continue;
+      if (viewBy === 'formateur') {
+        const heures = (new Date(s.end) - new Date(s.start)) / 3_600_000;
+        m[id] = (m[id] || 0) + (Number.isFinite(heures) ? heures : 0);
+      } else {
+        m[id] = (m[id] || 0) + 1;
+      }
     }
     return m;
-  }, [sessions, view]);
+  }, [sessions, view, viewBy]);
+
+  // Libellé du badge selon l'axe courant.
+  const formatMetric = (val) => {
+    if (!val) return '';
+    if (viewBy !== 'formateur') return `(${val})`;
+    const h = Number.isInteger(val) ? String(val) : val.toFixed(1).replace('.', ',');
+    return `· ${h} h`;
+  };
 
   const sessionsFiltrees = useMemo(
     () => sessions.filter((s) => view.ofSession(s) === entityId),
@@ -209,7 +225,7 @@ function AutoTab() {
               <SelectContent>
                 {view.list.map((e) => (
                   <SelectItem key={e._id} value={e._id}>
-                    {view.getLabel(e)} {countByEntity[e._id] ? `(${countByEntity[e._id]})` : ''}
+                    {view.getLabel(e)} {formatMetric(metricByEntity[e._id])}
                   </SelectItem>
                 ))}
               </SelectContent>

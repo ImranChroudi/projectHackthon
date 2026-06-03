@@ -3,6 +3,17 @@ import { POST_AUDIENCE } from '../config/constants.js';
 
 const { Schema, model } = mongoose;
 
+const documentSchema = new Schema(
+  {
+    filename: String,
+    originalName: String,
+    path: String,
+    mimetype: String,
+    size: Number,
+  },
+  { _id: false }
+);
+
 const postSchema = new Schema(
   {
     auteur: { type: Schema.Types.ObjectId, ref: 'User', required: true },
@@ -14,6 +25,8 @@ const postSchema = new Schema(
       default: POST_AUDIENCE.TOUS,
       index: true,
     },
+    // Pièces jointes optionnelles (documents partagés avec l'annonce).
+    piecesJointes: { type: [documentSchema], default: [] },
   },
   { timestamps: true }
 );

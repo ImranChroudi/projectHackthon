@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Plus, Trash2, Loader2, Megaphone } from 'lucide-react';
+import { Plus, Trash2, Loader2, Megaphone, Upload, FileText } from 'lucide-react';
 import { api, apiError } from '@/lib/api';
 import { usePosts } from '@/hooks/queries';
 import { PageHeader } from '@/components/PageHeader';
 import { EmptyState } from '@/components/EmptyState';
+import { Attachments } from '@/components/Attachments';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,13 +32,22 @@ export function PostsPage() {
   const { data: posts = [], isLoading } = usePosts();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY);
+  const [files, setFiles] = useState([]);
 
   const create = useMutation({
-    mutationFn: () => api.post('/posts', form),
+    mutationFn: () => {
+      const fd = new FormData();
+      fd.append('titre', form.titre);
+      fd.append('contenu', form.contenu);
+      fd.append('audience', form.audience);
+      files.forEach((f) => fd.append('fichiers', f));
+      return api.post('/posts', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+    },
     onSuccess: () => {
       toast.success('Annonce publiée.');
       qc.invalidateQueries({ queryKey: ['posts'] });
       setForm(EMPTY);
+      setFiles([]);
       setOpen(false);
     },
     onError: (err) => toast.error(apiError(err)),
@@ -81,8 +91,32 @@ export function PostsPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="post-files">Pièces jointes (optionnel)</Label>
+                <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed px-3 py-3 text-sm text-muted-foreground hover:bg-muted/50">
+                  <Upload className="h-4 w-4" />
+                  {files.length > 0 ? `${files.length} fichier(s) sélectionné(s)` : 'Choisir des fichiers'}
+                  <input
+                    id="post-files"
+                    type="file"
+                    multiple
+                    accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip"
+                    className="hidden"
+                    onChange={(e) => setFiles(Array.from(e.target.files || []))}
+                  />
+                </label>
+                {files.length > 0 && (
+                  <ul className="mt-1 space-y-1">
+                    {files.map((f, i) => (
+                      <li key={i} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <FileText className="h-3.5 w-3.5" /> {f.name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
+                <Button type="button" variant="outline" onClick={() => { setFiles([]); setOpen(false); }}>Annuler</Button>
                 <Button type="submit" disabled={create.isPending}>
                   {create.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Publier
                 </Button>
@@ -110,7 +144,10 @@ export function PostsPage() {
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent><p className="whitespace-pre-line text-sm text-foreground/90">{p.contenu}</p></CardContent>
+              <CardContent>
+                <p className="whitespace-pre-line text-sm text-foreground/90">{p.contenu}</p>
+                <Attachments items={p.piecesJointes} />
+              </CardContent>
             </Card>
           ))}
         </div>

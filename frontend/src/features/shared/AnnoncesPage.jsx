@@ -3,6 +3,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { EmptyState } from '@/components/EmptyState';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Attachments } from '@/components/Attachments';
 import { usePosts } from '@/hooks/queries';
 import { AUDIENCE_LABELS } from '@/lib/constants';
 import { formatDateTime } from '@/lib/format';
@@ -31,6 +32,7 @@ export function AnnoncesPage() {
               </CardHeader>
               <CardContent>
                 <p className="whitespace-pre-line text-sm text-foreground/90">{p.contenu}</p>
+                <Attachments items={p.piecesJointes} />
               </CardContent>
             </Card>
           ))}
