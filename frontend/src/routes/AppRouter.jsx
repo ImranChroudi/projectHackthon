@@ -24,7 +24,6 @@ import { AdminDashboard } from '@/features/admin/AdminDashboard';
 import { UsersPage } from '@/features/admin/UsersPage';
 import { ReferencePage } from '@/features/admin/ReferencePage';
 import { SchedulePage } from '@/features/admin/SchedulePage';
-import ScheduleGeneratorPage from '@/features/admin/ScheduleGeneratorPage';
 import { JustificationQueuePage } from '@/features/admin/JustificationQueuePage';
 import { PostsPage } from '@/features/admin/PostsPage';
 import { AnalyticsPage } from '@/features/admin/AnalyticsPage';
@@ -93,7 +92,6 @@ export function AppRouter() {
         <Route path="utilisateurs" element={<UsersPage />} />
         <Route path="referentiel" element={<ReferencePage />} />
         <Route path="emploi-du-temps" element={<SchedulePage />} />
-        <Route path="generateur-edt" element={<ScheduleGeneratorPage />} />
         <Route path="historique-presences" element={<AttendanceHistoryPage />} />
         <Route path="justifications" element={<JustificationQueuePage />} />
         <Route path="annonces" element={<PostsPage />} />
