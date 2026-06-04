@@ -81,7 +81,13 @@ export function SessionDetailPage() {
           <TabsTrigger value="presences">Feuille de présence</TabsTrigger>
         </TabsList>
         <TabsContent value="qr">
-          <QrPanel sessionId={id} active={isActive} />
+          <QrPanel
+            sessionId={id}
+            active={isActive}
+            canReactivate={dansCreneau}
+            reactivating={activate.isPending}
+            onReactivate={() => activate.mutate()}
+          />
         </TabsContent>
         <TabsContent value="presences">
           <AttendancePanel sessionId={id} />
@@ -91,7 +97,7 @@ export function SessionDetailPage() {
   );
 }
 
-function QrPanel({ sessionId, active }) {
+function QrPanel({ sessionId, active, canReactivate, reactivating, onReactivate }) {
   const { data, isError, error } = useQuery({
     queryKey: ['qr', sessionId],
     queryFn: () => api.get(`/sessions/${sessionId}/qr`).then((r) => r.data),
@@ -114,7 +120,23 @@ function QrPanel({ sessionId, active }) {
     <Card>
       <CardContent className="flex flex-col items-center gap-4 p-8">
         {isError ? (
-          <EmptyState icon={Clock} title="QR indisponible" description={apiError(error, 'La fenêtre de scan est peut-être expirée.')} />
+          <div className="flex flex-col items-center gap-4">
+            <EmptyState
+              icon={Clock}
+              title="Fenêtre de scan fermée"
+              description={
+                canReactivate
+                  ? 'La fenêtre de 15 minutes est écoulée. Rouvrez-la pour réafficher un QR code valable.'
+                  : apiError(error, "La fenêtre de scan est expirée et le créneau de la session est terminé.")
+              }
+            />
+            {canReactivate && (
+              <Button onClick={onReactivate} disabled={reactivating}>
+                {reactivating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                Rouvrir la fenêtre de scan
+              </Button>
+            )}
+          </div>
         ) : data ? (
           <>
             <div className="rounded-2xl border-4 border-primary/10 bg-white p-4 shadow-sm">

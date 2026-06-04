@@ -6,10 +6,12 @@ export const MSG = {
   TOKEN_INVALIDE: 'Jeton invalide ou expiré.',
   ACCES_REFUSE: "Vous n'avez pas l'autorisation d'accéder à cette ressource.",
   COMPTE_DESACTIVE: 'Ce compte est désactivé.',
-  DECONNEXION_VERROUILLEE:
-    'Déconnexion impossible pendant la fenêtre de présence active (anti-fraude). Réessayez plus tard.',
-  CONNEXION_VERROUILLEE:
-    'Connexion impossible : un scan de présence est actif sur cet appareil (anti-fraude). Réessayez dans quelques minutes.',
+  // Verrou anti-fraude (15 min après un scan). Le décompte est passé en argument
+  // pour afficher les minutes réellement restantes jusqu'à la levée automatique.
+  DECONNEXION_VERROUILLEE: (minutes) =>
+    `Déconnexion bloquée pendant 15 minutes après un scan de présence (anti-fraude). Encore ${minutes} min avant de pouvoir vous déconnecter.`,
+  CONNEXION_VERROUILLEE: (minutes) =>
+    `Connexion impossible : un scan de présence est actif sur cet appareil (anti-fraude). Réessayez dans ${minutes} min.`,
   DECONNEXION_OK: 'Déconnexion réussie.',
 
   // Ressources

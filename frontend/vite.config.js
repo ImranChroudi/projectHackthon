@@ -10,9 +10,10 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // Le backend Express tourne sur le port 5001.
-      '/api': { target: 'http://localhost:5000', changeOrigin: true },
-      '/uploads': { target: 'http://localhost:5000', changeOrigin: true },
+      // Le backend Express tourne sur le port 5000 (cf. backend/.env PORT).
+      // 127.0.0.1 (et non localhost) pour éviter l'échec IPv6 ::1 sous Node 18+.
+      '/api': { target: 'http://127.0.0.1:5000', changeOrigin: true },
+      '/uploads': { target: 'http://127.0.0.1:5000', changeOrigin: true },
     },
   },
 });

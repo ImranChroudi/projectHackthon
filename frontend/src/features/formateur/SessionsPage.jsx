@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -14,10 +15,24 @@ import { formatDateTime, formatTime } from '@/lib/format';
 
 export function SessionsPage() {
   const qc = useQueryClient();
-  const { data: allSessions = [], isLoading } = useSessions();
-  // On masque les sessions déjà terminées (fin passée) — seules les sessions
-  // en cours ou à venir restent activables.
-  const sessions = allSessions.filter((s) => !s.end || new Date(s.end).getTime() >= Date.now());
+  // Horloge légère : (ré)active les boutons dès qu'une session entre dans son créneau.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+
+  // On ne montre que les sessions du jour. Les bornes tombent sur minuit / fin de
+  // journée locale : elles restent stables toute la journée (la clé de cache ne
+  // change qu'au passage de minuit), même si `now` se rafraîchit chaque 30 s.
+  const dayStart = new Date(now);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(now);
+  dayEnd.setHours(23, 59, 59, 999);
+  const { data: sessions = [], isLoading } = useSessions({
+    from: dayStart.toISOString(),
+    to: dayEnd.toISOString(),
+  });
 
   const activate = useMutation({
     mutationFn: (id) => api.post(`/sessions/${id}/activate`),
@@ -30,7 +45,7 @@ export function SessionsPage() {
 
   return (
     <div>
-      <PageHeader title="Mes sessions" description="Activez une session pour générer son QR code." />
+      <PageHeader title="Mes sessions du jour" description="Vos séances d'aujourd'hui — activez-en une pour générer son QR code." />
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
@@ -39,7 +54,7 @@ export function SessionsPage() {
             </div>
           ) : sessions.length === 0 ? (
             <div className="p-6">
-              <EmptyState title="Aucune session à venir" description="Aucune session en cours ou planifiée pour le moment." />
+              <EmptyState title="Aucune session aujourd'hui" description="Vous n'avez aucune séance planifiée pour la journée." />
             </div>
           ) : (
             <Table>
@@ -53,33 +68,51 @@ export function SessionsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sessions.map((s) => (
-                  <TableRow key={s._id}>
-                    <TableCell className="font-medium">{s.module?.nom}</TableCell>
-                    <TableCell className="text-muted-foreground">{s.groupe?.nom}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {formatDateTime(s.start)} → {formatTime(s.end)}
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge type="session" value={s.status} />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        {s.status === 'planifie' && (
-                          <Button size="sm" variant="outline" onClick={() => activate.mutate(s._id)} disabled={activate.isPending}>
-                            {activate.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlayCircle className="h-4 w-4" />}
-                            Activer
+                {sessions.map((s) => {
+                  // Le formateur ne peut activer que pendant le créneau planifié [start, end].
+                  const avant = now < new Date(s.start).getTime();
+                  const dansCreneau = !avant && now <= new Date(s.end).getTime();
+                  return (
+                    <TableRow key={s._id}>
+                      <TableCell className="font-medium">{s.module?.nom}</TableCell>
+                      <TableCell className="text-muted-foreground">{s.groupe?.nom}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {formatTime(s.start)} → {formatTime(s.end)}
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge type="session" value={s.status} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          {s.status === 'planifie' && (
+                            <>
+                              {avant && (
+                                <span className="text-xs text-muted-foreground">
+                                  Activable dès {formatTime(s.start)}
+                                </span>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => activate.mutate(s._id)}
+                                disabled={activate.isPending || !dansCreneau}
+                                title={dansCreneau ? undefined : `La session ne peut être activée que pendant son créneau (${formatDateTime(s.start)} – ${formatTime(s.end)}).`}
+                              >
+                                {activate.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlayCircle className="h-4 w-4" />}
+                                Activer
+                              </Button>
+                            </>
+                          )}
+                          <Button asChild size="sm">
+                            <Link to={`/formateur/sessions/${s._id}`}>
+                              <QrCode className="h-4 w-4" /> Ouvrir
+                            </Link>
                           </Button>
-                        )}
-                        <Button asChild size="sm">
-                          <Link to={`/formateur/sessions/${s._id}`}>
-                            <QrCode className="h-4 w-4" /> Ouvrir
-                          </Link>
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
