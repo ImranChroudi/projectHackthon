@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
-import { useAttendanceHistory, useGroupes, useModules, useUsers } from '@/hooks/queries';
+import { useAttendanceHistory, useGroupes, useModules } from '@/hooks/queries';
 import { PageHeader, TableSkeleton } from '@/components/PageHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { EmptyState } from '@/components/EmptyState';
@@ -36,6 +36,8 @@ export function AttendanceHistoryPage() {
   const [groupe, setGroupe] = useState('all');
   const [module, setModule] = useState('all');
   const [stagiaire, setStagiaire] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [status, setStatus] = useState('all');
   const [formateur, setFormateur] = useState('all');
 
@@ -44,6 +46,8 @@ export function AttendanceHistoryPage() {
   if (groupe !== 'all') params.groupe = groupe;
   if (module !== 'all') params.module = module;
   if (stagiaire.trim()) params.stagiaire = stagiaire.trim();
+  if (fromDate) params.from = fromDate;
+  if (toDate) params.to = toDate;
   if (status !== 'all') params.status = status;
   if (isAdmin && formateur !== 'all') params.formateur = formateur;
 
@@ -57,7 +61,6 @@ export function AttendanceHistoryPage() {
     queryFn: () => api.get('/users', { params: { role: 'formateur' } }).then((r) => r.data),
     enabled: isAdmin,
   });
-  const { data: stagiaires = [] } = useUsers({ role: 'stagiaire' });
 
   const description = isAdmin
     ? 'Historique de toutes les présences enregistrées.'
@@ -129,6 +132,16 @@ export function AttendanceHistoryPage() {
             onChange={(event) => setStagiaire(event.target.value)}
             placeholder="Nom ou prénom"
           />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>Du</Label>
+          <Input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>Au</Label>
+          <Input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} />
         </div>
 
         <div className="space-y-1.5">

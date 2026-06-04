@@ -96,8 +96,16 @@ export async function listHistory(requester, { groupe, module, formateur, stagia
   if (status && status !== 'all') filter.status = status;
   if (from || to) {
     filter.sessionStart = {};
-    if (from) filter.sessionStart.$gte = new Date(from);
-    if (to) filter.sessionStart.$lte = new Date(to);
+    if (from) {
+      const fromDate = new Date(from);
+      fromDate.setHours(0, 0, 0, 0);
+      filter.sessionStart.$gte = fromDate;
+    }
+    if (to) {
+      const toDate = new Date(to);
+      toDate.setHours(23, 59, 59, 999);
+      filter.sessionStart.$lte = toDate;
+    }
   }
 
   return Attendance.find(filter)

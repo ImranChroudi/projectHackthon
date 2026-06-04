@@ -26,6 +26,14 @@ export function AdminDashboard() {
     queryKey: ['analytics', 'stagiaires'],
     queryFn: () => api.get('/analytics/stagiaires', { params: { limit: 5 } }).then((r) => r.data),
   });
+  const todayAbsents = useQuery({
+    queryKey: ['analytics', 'today', 'stagiaires-absents'],
+    queryFn: () => api.get('/analytics/today/stagiaires-absents').then((r) => r.data),
+  });
+  const todayGroupeMax = useQuery({
+    queryKey: ['analytics', 'today', 'groupe-max-absences'],
+    queryFn: () => api.get('/analytics/today/groupe-max-absences').then((r) => r.data),
+  });
 
   const totalAbsences = (stagiaires.data || []).reduce((s, u) => s + (u.absenceCount || 0), 0);
 
@@ -43,6 +51,8 @@ export function AdminDashboard() {
         <StatCard icon={CalendarX2} label="Absences cumulées" value={totalAbsences} tone="warning" loading={stagiaires.isLoading} />
         <StatCard icon={FileClock} label="Justifications en attente" value={justifs.data?.length ?? 0} tone="destructive" loading={justifs.isLoading} />
         <StatCard icon={Users} label="Groupes suivis" value={groupes.data?.length ?? 0} tone="success" loading={groupes.isLoading} />
+        <StatCard icon={CalendarX2} label="Absents aujourd'hui" value={todayAbsents.data?.absents ?? 0} tone="warning" loading={todayAbsents.isLoading} />
+        <StatCard icon={Users} label="Groupe max absences" value={todayGroupeMax.data?.nom ? `${todayGroupeMax.data.nom} (${todayGroupeMax.data.absences})` : '—'} tone="muted" loading={todayGroupeMax.isLoading} />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">

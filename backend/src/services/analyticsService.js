@@ -178,3 +178,54 @@ export async function absencesFormateur(formateur) {
     .populate('justification', 'statut')
     .lean();
 }
+
+// 7) Absences du jour : stagiaires absents aujourd'hui.
+export async function stagiairesAbsentsAujourdhui() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  return Attendance.aggregate([
+    {
+      $match: {
+        status: { $in: ABSENT_STATUSES },
+        sessionStart: { $gte: today, $lt: tomorrow },
+      },
+    },
+    { $group: { _id: '$stagiaire' } },
+    { $count: 'total' },
+  ]).then((res) => (res.length > 0 ? res[0].total : 0));
+}
+
+// 8) Groupe avec le plus d'absences aujourd'hui.
+export async function groupePlusAbsencesAujourdhui() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const result = await Attendance.aggregate([
+    {
+      $match: {
+        status: { $in: ABSENT_STATUSES },
+        sessionStart: { $gte: today, $lt: tomorrow },
+      },
+    },
+    { $group: { _id: '$groupe', absences: { $sum: 1 } } },
+    { $sort: { absences: -1 } },
+    { $limit: 1 },
+    { $lookup: { from: 'groupes', localField: '_id', foreignField: '_id', as: 'groupe' } },
+    { $unwind: { path: '$groupe', preserveNullAndEmptyArrays: true } },
+    {
+      $project: {
+        _id: 1,
+        absences: 1,
+        nom: '$groupe.nom',
+        code: '$groupe.code',
+      },
+    },
+  ]);
+
+  return result.length > 0 ? result[0] : null;
+}

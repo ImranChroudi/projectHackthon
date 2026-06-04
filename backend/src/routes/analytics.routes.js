@@ -48,4 +48,20 @@ router.get(
   asyncHandler(async (req, res) => res.json(await analytics.absencesFormateur(req.user)))
 );
 
+// Absences d'aujourd'hui
+router.get(
+  '/today/stagiaires-absents',
+  authorize(ROLES.ADMIN),
+  asyncHandler(async (_req, res) => {
+    const count = await analytics.stagiairesAbsentsAujourdhui();
+    res.json({ absents: count });
+  })
+);
+
+router.get(
+  '/today/groupe-max-absences',
+  authorize(ROLES.ADMIN),
+  asyncHandler(async (_req, res) => res.json(await analytics.groupePlusAbsencesAujourdhui()))
+);
+
 export default router;
