@@ -4,6 +4,7 @@ import {
   Library,
   CalendarRange,
   CalendarDays,
+  Wand2,
   FileCheck2,
   Megaphone,
   BarChart3,
@@ -12,6 +13,7 @@ import {
   ClipboardList,
   FileText,
   Bell,
+  History,
 } from 'lucide-react';
 
 // Navigation par rôle : { to, label, icon }.
@@ -21,6 +23,8 @@ export const NAV = {
     { to: '/admin/utilisateurs', label: 'Utilisateurs', icon: Users },
     { to: '/admin/referentiel', label: 'Référentiel', icon: Library },
     { to: '/admin/emploi-du-temps', label: 'Emploi du temps', icon: CalendarRange },
+    { to: '/admin/generateur-edt', label: 'Générateur EDT', icon: Wand2 },
+    { to: '/admin/historique-presences', label: 'Historique présences', icon: History },
     { to: '/admin/justifications', label: 'Justifications', icon: FileCheck2 },
     { to: '/admin/annonces', label: 'Annonces', icon: Megaphone },
     { to: '/admin/analyses', label: 'Analyses', icon: BarChart3 },
@@ -29,6 +33,7 @@ export const NAV = {
     { to: '/formateur', label: 'Tableau de bord', icon: LayoutDashboard, end: true },
     { to: '/formateur/emploi-du-temps', label: 'Emploi du temps', icon: CalendarDays },
     { to: '/formateur/sessions', label: 'Mes sessions', icon: CalendarRange },
+    { to: '/formateur/historique-presences', label: 'Historique présences', icon: History },
     { to: '/formateur/annonces', label: 'Annonces', icon: Megaphone },
   ],
   stagiaire: [

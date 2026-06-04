@@ -29,6 +29,14 @@ export function useUsers(params = {}) {
   });
 }
 
+// --- Historique des présences (formateur : les siennes ; admin : toutes) ---
+export function useAttendanceHistory(params = {}) {
+  return useQuery({
+    queryKey: ['attendance', 'history', params],
+    queryFn: () => api.get('/attendance/history', { params }).then((r) => r.data),
+  });
+}
+
 // --- Sessions ---
 export function useSessions(params = {}) {
   return useQuery({

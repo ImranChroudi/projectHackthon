@@ -30,7 +30,7 @@ export function MyAttendancePage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Module</TableHead>
+                  <TableHead>Thème</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Salle</TableHead>
                   <TableHead>Statut</TableHead>
@@ -39,7 +39,7 @@ export function MyAttendancePage() {
               <TableBody>
                 {records.map((a) => (
                   <TableRow key={a._id}>
-                    <TableCell className="font-medium">{a.module?.nom || '—'}</TableCell>
+                    <TableCell className="font-medium">{a.module?.nom || a.module?.code || '—'}</TableCell>
                     <TableCell className="text-muted-foreground">{formatDateTime(a.sessionStart)}</TableCell>
                     <TableCell className="text-muted-foreground">{a.session?.salle?.nom || '—'}</TableCell>
                     <TableCell>

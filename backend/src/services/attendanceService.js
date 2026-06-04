@@ -9,6 +9,10 @@ import { Attendance } from '../models/Attendance.js';
 import { evaluerAlertesAbsence } from './alertService.js';
 import { verifyScanToken } from './qrService.js';
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // Enregistre la présence d'un stagiaire suite au scan du QR.
 // Le contrôle WiFi (CIDR) est déjà appliqué par le middleware wifiGuard en amont.
 export async function scan({ sessionId, token, stagiaire, scanIp, deviceId, now = new Date() }) {
@@ -58,6 +62,52 @@ export async function scan({ sessionId, token, stagiaire, scanIp, deviceId, now 
   await stagiaire.save();
 
   return { attendance, status };
+}
+
+// Historique des présences (réservé formateur/admin).
+//  - Admin : voit toutes les fiches de présence.
+//  - Formateur : ne voit que les présences de SES sessions (champ dénormalisé `formateur`).
+export async function listHistory(requester, { groupe, module, formateur, stagiaire, status, from, to } = {}) {
+  const filter = {};
+
+  // Cloisonnement par rôle : un formateur est forcé sur son propre identifiant.
+  if (requester.role === ROLES.FORMATEUR) {
+    filter.formateur = requester._id;
+  } else if (formateur && formateur !== 'all') {
+    filter.formateur = formateur;
+  }
+
+  if (groupe && groupe !== 'all') filter.groupe = groupe;
+  if (module && module !== 'all') filter.module = module;
+  if (stagiaire && stagiaire !== 'all') {
+    const query = stagiaire.trim();
+    if (query) {
+      const regex = new RegExp(escapeRegExp(query), 'i');
+      const users = await User.find({
+        role: ROLES.STAGIAIRE,
+        $or: [{ prenom: regex }, { nom: regex }],
+      }).select('_id');
+      if (users.length === 0) {
+        return [];
+      }
+      filter.stagiaire = { $in: users.map((u) => u._id) };
+    }
+  }
+  if (status && status !== 'all') filter.status = status;
+  if (from || to) {
+    filter.sessionStart = {};
+    if (from) filter.sessionStart.$gte = new Date(from);
+    if (to) filter.sessionStart.$lte = new Date(to);
+  }
+
+  return Attendance.find(filter)
+    .sort({ sessionStart: -1, createdAt: -1 })
+    .limit(1000)
+    .populate('stagiaire', 'nom prenom email')
+    .populate('module', 'nom code')
+    .populate('groupe', 'nom code')
+    .populate('formateur', 'nom prenom')
+    .populate({ path: 'session', select: 'start end', populate: { path: 'salle', select: 'nom code' } });
 }
 
 // Liste les présences d'une session (réservé formateur/admin).

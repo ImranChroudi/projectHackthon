@@ -3,9 +3,30 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { ROLES } from '../config/constants.js';
 import { Attendance } from '../models/Attendance.js';
+import * as attendanceService from '../services/attendanceService.js';
 
 const router = Router();
 router.use(authenticate);
+
+// Historique des présences (formateur : les siennes ; admin : toutes).
+router.get(
+  '/history',
+  authorize(ROLES.FORMATEUR, ROLES.ADMIN),
+  asyncHandler(async (req, res) => {
+    const { groupe, module, formateur, stagiaire, status, from, to } = req.query;
+    res.json(
+      await attendanceService.listHistory(req.user, {
+        groupe,
+        module,
+        formateur,
+        stagiaire,
+        status,
+        from,
+        to,
+      })
+    );
+  })
+);
 
 // Historique de présence du stagiaire connecté.
 router.get(
