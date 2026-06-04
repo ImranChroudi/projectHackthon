@@ -11,8 +11,8 @@ export default defineConfig({
     port: 5173,
     proxy: {
       // Le backend Express tourne sur le port 5001.
-      '/api': { target: 'http://localhost:5001', changeOrigin: true },
-      '/uploads': { target: 'http://localhost:5001', changeOrigin: true },
+      '/api': { target: 'http://localhost:5000', changeOrigin: true },
+      '/uploads': { target: 'http://localhost:5000', changeOrigin: true },
     },
   },
 });
