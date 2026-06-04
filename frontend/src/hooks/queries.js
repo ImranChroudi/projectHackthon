@@ -93,3 +93,11 @@ export function useMarkAllNotificationsRead() {
 export function usePosts() {
   return useQuery({ queryKey: ['posts'], queryFn: () => api.get('/posts').then((r) => r.data) });
 }
+
+// --- Absences scopées au formateur connecté (ses modules / groupes) ---
+export function useFormateurAbsences() {
+  return useQuery({
+    queryKey: ['analytics', 'formateur', 'absences'],
+    queryFn: () => api.get('/analytics/formateur/absences').then((r) => r.data),
+  });
+}

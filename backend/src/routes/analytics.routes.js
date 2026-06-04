@@ -41,4 +41,11 @@ router.get(
   asyncHandler(async (req, res) => res.json(await analytics.dashboardFormateur(req.user)))
 );
 
+// Liste détaillée des absences dans le périmètre du formateur connecté.
+router.get(
+  '/formateur/absences',
+  authorize(ROLES.FORMATEUR, ROLES.ADMIN),
+  asyncHandler(async (req, res) => res.json(await analytics.absencesFormateur(req.user)))
+);
+
 export default router;

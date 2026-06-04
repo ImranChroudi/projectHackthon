@@ -34,6 +34,7 @@ export const NAV = {
     { to: '/formateur/emploi-du-temps', label: 'Emploi du temps', icon: CalendarDays },
     { to: '/formateur/sessions', label: 'Mes sessions', icon: CalendarRange },
     { to: '/formateur/historique-presences', label: 'Historique présences', icon: History },
+    { to: '/formateur/absences', label: 'Absences', icon: ClipboardList },
     { to: '/formateur/annonces', label: 'Annonces', icon: Megaphone },
   ],
   stagiaire: [
